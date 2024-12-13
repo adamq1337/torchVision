@@ -1,0 +1,142 @@
+import torch
+import matplotlib.pyplot as plt
+from torch.utils.data import DataLoader
+from torchvision.datasets import MNIST
+from torchvision.transforms import ToTensor
+import torch.nn as nn
+
+class ModelEvaluator:
+    @staticmethod
+    def calculate_accuracy(model, data_loader):
+        
+        model.eval()
+        total_correct = 0
+        total_instances = 0
+        
+        with torch.no_grad():
+            for images, labels in data_loader:
+                images = images.to("cpu")
+                labels = labels.to("cpu")
+                
+                # Get model predictions
+                classifications = torch.argmax(model(images), dim=1)
+                
+                # Count correct predictions
+                correct_predictions = sum(classifications == labels).item()
+                total_correct += correct_predictions
+                total_instances += len(images)
+        
+        return total_correct / total_instances
+
+    @staticmethod
+    def train_model(model, data_loader, optimizer, loss_function):
+      
+        model.train()
+        for data, target in data_loader:
+            # Move data to CPU
+            data = data.to("cpu")
+            target = target.to("cpu")
+            
+            # Zero gradients
+            optimizer.zero_grad()
+            
+            # Forward pass
+            target_prediction = model(data)
+            
+            # Compute loss
+            loss = loss_function(target_prediction, target)
+            
+            # Backward pass
+            loss.backward()
+            
+            # Update weights
+            optimizer.step()
+
+def main():
+    # Load MNIST datasets
+    train_data = MNIST("./", train=True, download=True, transform=ToTensor())
+    test_data = MNIST("./", train=False, download=True, transform=ToTensor())
+    
+    # Create data loaders
+    train_loader = DataLoader(train_data, batch_size=32, num_workers=1, pin_memory=True)
+    test_loader = DataLoader(test_data, batch_size=32, num_workers=1, pin_memory=True)
+    
+    # Visualization of sample images
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 2, 1)
+    plt.title("Train Sample")
+    plt.imshow(train_data[0][0][0], cmap='gray')
+    
+    plt.subplot(1, 2, 2)
+    plt.title("Test Sample")
+    plt.imshow(test_data[0][0][0], cmap='gray')
+    plt.tight_layout()
+    plt.show()
+    
+    # Loss function
+    loss_function = torch.nn.CrossEntropyLoss().to("cpu")
+    
+    '''
+    # Problem 2: Single Hidden Layer
+    print("\nProblem 2: Single Hidden Layer Neural Network")
+    single_layer_model = nn.Sequential(
+        torch.nn.Flatten(),
+        torch.nn.Linear(28 * 28, 300),
+        torch.nn.ReLU(),
+        torch.nn.Linear(300, 10),
+        torch.nn.Sigmoid()
+    ).to("cpu")
+    
+    optimizer = torch.optim.SGD(single_layer_model.parameters(), lr=0.1)
+    
+    print("Epoch-wise Accuracy:")
+    for epoch in range(10):
+        ModelEvaluator.train_model(single_layer_model, train_loader, optimizer, loss_function)
+        accuracy = ModelEvaluator.calculate_accuracy(single_layer_model, test_loader)
+        print(f"Epoch {epoch + 1}: {accuracy:.4f}")
+    
+    # Problem 3: Two Hidden Layers
+    print("\nProblem 3: Two Hidden Layers Neural Network")
+    two_layer_model = nn.Sequential(
+        torch.nn.Flatten(),
+        torch.nn.Linear(28 * 28, 500),
+        torch.nn.ReLU(),
+        torch.nn.Linear(500, 300),
+        torch.nn.Linear(300, 10),
+        torch.nn.Sigmoid()
+    ).to("cpu")
+    
+    optimizer = torch.optim.SGD(two_layer_model.parameters(), lr=0.1, weight_decay=0.0001)
+    
+    print("Epoch-wise Accuracy:")
+    for epoch in range(40):
+        ModelEvaluator.train_model(two_layer_model, train_loader, optimizer, loss_function)
+        accuracy = ModelEvaluator.calculate_accuracy(two_layer_model, test_loader)
+        print(f"Epoch {epoch + 1}: {accuracy:.4f}")
+    '''
+    # Problem 4: Convolutional Neural Network
+    print("\nProblem 4: Convolutional Neural Network")
+    cnn_model = nn.Sequential(
+        torch.nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1),
+        torch.nn.ReLU(),
+        torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
+        torch.nn.ReLU(),
+        torch.nn.MaxPool2d(2),
+        torch.nn.Flatten(),
+        torch.nn.Linear(28*28*16, 28*16),
+        torch.nn.ReLU(),
+        torch.nn.Linear(28*16, 128),
+        torch.nn.Linear(128, 10),
+        torch.nn.Sigmoid()
+    ).to("cpu")
+    
+    optimizer = torch.optim.SGD(cnn_model.parameters(), lr=0.1, weight_decay=0.0001)
+    
+    print("Epoch-wise Accuracy:")
+    for epoch in range(40):
+        ModelEvaluator.train_model(cnn_model, train_loader, optimizer, loss_function)
+        accuracy = ModelEvaluator.calculate_accuracy(cnn_model, test_loader)
+        print(f"Epoch {epoch + 1}: {accuracy:.4f}")
+
+if __name__ == "__main__":
+    main()
